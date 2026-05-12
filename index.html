@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قناص النخبة Pro - الإصدار المتطور</title>
+    <style>
+        :root { --primary: #00f2fe; --cyber: #ff003c; --gold: #ffd700; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; overflow: hidden; }
+        
+        body { background: #050505; color: white; perspective: 1500px; height: 100vh; cursor: crosshair; }
+
+        /* الأهداف */
+        .target {
+            position: absolute; width: 70px; height: 100px;
+            transform-style: preserve-3d; pointer-events: auto;
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 10;
+        }
+        .target .head { width: 25px; height: 25px; background: #ffdbac; border-radius: 50%; border: 1px solid #000; }
+        .target .body { width: 45px; height: 60px; background: var(--cyber); border-radius: 8px; border: 2px solid #fff; box-shadow: 0 0 10px var(--cyber); }
+
+        /* الشاشات المنبثقة */
+        #overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: radial-gradient(circle, #1a1a2e, #000);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 25px;
+            border: 2px solid var(--primary); text-align: center; width: 90%; max-width: 400px;
+            backdrop-filter: blur(15px);
+        }
+
+        .btn {
+            display: block; width: 100%; padding: 14px; margin: 10px 0;
+            background: var(--primary); color: #000; border: none;
+            border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            text-decoration: none;
+        }
+        .btn:hover { transform: scale(1.02); }
+        .btn-retry { background: var(--gold); display: none; } /* زر إعادة اللعب مخفي في البداية */
+
+        /* علامة التصويب */
+        #crosshair {
+            position: fixed; width: 40px; height: 40px;
+            border: 2px solid var(--primary); border-radius: 50%;
+            pointer-events: none; z-index: 1000; transform: translate(-50%, -50%);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #crosshair::after { content: ''; position: absolute; width: 2px; height: 100%; background: var(--primary); }
+        #crosshair::before { content: ''; position: absolute; width: 100%; height: 2px; background: var(--primary); }
+
+        #hud { position: fixed; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; z-index: 50; }
+        
+        .social-icons { display: flex; gap: 15px; justify-content: center; margin-top: 15px; }
+        .social-icons a svg { width: 32px; height: 32px; fill: white; transition: 0.3s; }
+        .social-icons a:hover svg { fill: var(--primary); }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="crosshair"></div>
+    <div id="hud">
+        <div style="color: var(--primary)">النقاط: <span id="score">0</span></div>
+        <div style="color: var(--gold)">الأفضل: <span id="high-score">0</span></div>
+    </div>
+
+    <div id="overlay">
+        <div class="card">
+            <h1 style="color: var(--primary)">قناص النخبة</h1>
+            <p id="msg" style="margin: 10px 0;">اختر مستوى الصعوبة لبدء المهمة</p>
+            
+            <div id="level-selection">
+                <button class="btn" onclick="startGame(1)">🎯 سهل</button>
+                <button class="btn" onclick="startGame(2)">⚡ متوسط</button>
+                <button class="btn" onclick="startGame(3)">💀 صعب</button>
+            </div>
+
+            <button id="retry-btn" class="btn btn-retry" onclick="showLevels()">🔄 إعادة المحاولة</button>
+            
+            <button class="btn" style="background:#8e44ad; color:white;" onclick="shareAction()">
+                <span>📤</span> مشاركة النتيجة
+            </button>
+            
+            <div class="social-icons">
+                <!-- روابط ذكية تفتح في تطبيق الهاتف أو نافذة جديدة للكمبيوتر -->
+                <a href="fb://facewebmodal/f?href=https://facebook.com" target="_blank" onclick="checkPlatform(event, 'https://facebook.com')">
+                    <svg viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                </a>
+                <a href="whatsapp://send?text=جرب هذه اللعبة!" target="_blank" onclick="checkPlatform(event, 'https://wa.me هذه اللعبة!')">
+                    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let score = 0, highScore = localStorage.getItem('sn_pro_high') || 0;
+        let gameActive = false, moveSpeed = 6, spawnTime = 1200, spawnInterval;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        document.getElementById('high-score').innerText = highScore;
+
+        window.addEventListener('mousemove', e => {
+            const ch = document.getElementById('crosshair');
+            ch.style.left = e.clientX + 'px';
+            ch.style.top = e.clientY + 'px';
+        });
+
+        function playShot() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function startGame(mode) {
+            gameActive = true; score = 0;
+            if(mode === 1) { moveSpeed = 5; spawnTime = 1500; }
+            else if(mode === 2) { moveSpeed = 9; spawnTime = 1000; }
+            else { moveSpeed = 13; spawnTime = 700; }
+
+            document.getElementById('score').innerText = score;
+            document.getElementById('overlay').style.display = 'none';
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
+            spawnInterval = setInterval(() => {
+                if(gameActive) createTarget();
+                else clearInterval(spawnInterval);
+            }, spawnTime);
+        }
+
+        function createTarget() {
+            const t = document.createElement('div');
+            t.className = 'target';
+            t.innerHTML = '<div class="head"></div><div class="body"></div>';
+            t.style.left = Math.random() * (window.innerWidth - 70) + 'px';
+            t.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+            let z = -1500;
+            document.body.appendChild(t);
+
+            t.onmousedown = (e) => {
+                e.stopPropagation(); playShot();
+                score++; document.getElementById('score').innerText = score;
+                if(score > highScore) {
+                    highScore = score; localStorage.setItem('sn_pro_high', highScore);
+                    document.getElementById('high-score').innerText = highScore;
+                }
+                t.remove();
+            };
+
+            let move = setInterval(() => {
+                if(!gameActive) { t.remove(); clearInterval(move); return; }
+                z += moveSpeed;
+                t.style.transform = `translateZ(${z}px)`;
+                if(z > 500) { clearInterval(move); t.remove(); gameOver(); }
+            }, 20);
+        }
+
+        function gameOver() {
+            gameActive = false;
+            document.getElementById('overlay').style.display = 'flex';
+            document.getElementById('level-selection').style.display = 'none';
+            document.getElementById('retry-btn').style.display = 'flex';
+            document.getElementById('msg').innerHTML = `<b style="color:var(--cyber)">انتهت المهمة!</b><br>نقاطك: ${score}`;
+        }
+
+        function showLevels() {
+            document.getElementById('level-selection').style.display = 'block';
+            document.getElementById('retry-btn').style.display = 'none';
+            document.getElementById('msg').innerText = "اختر مستوى الصعوبة لبدء المهمة";
+        }
+
+        async function shareAction() {
+            const text = score > 0 ? `حققت ${score} نقطة في قناص النخبة! تحداك تهزمني؟` : "جرب لعبة قناص النخبة Pro الجديدة!";
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'قناص النخبة Pro', text: text, url: window.location.href });
+                } catch (err) {}
+            } else {
+                navigator.clipboard.writeText(text + " " + window.location.href);
+                alert("تم نسخ الرابط! شاركه مع أصدقائك.");
+            }
+        }
+
+        // دالة ذكية للتحقق من المنصة (هاتف أم كمبيوتر)
+        function checkPlatform(e, fallbackUrl) {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (!isMobile) {
+                e.preventDefault();
+                window.open(fallbackUrl, '_blank');
+            }
+        }
+
+        window.onmousedown = () => { if(gameActive) playShot(); };
+    </script>
+</body>
+</html>
